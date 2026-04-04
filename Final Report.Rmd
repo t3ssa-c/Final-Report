@@ -129,6 +129,7 @@ targeted <- names(sort(ec,
 g_targeted <- delete_vertices(g, targeted) # deactivate these nodes
 density_targeted <- edge_density(g_targeted) # new density
 difference_targeted <- baseline_density - density_targeted
+print(difference_targeted)
 
 # Simulation B: Random Removal
 set.seed(1)
@@ -136,6 +137,7 @@ random <- V(g)$name[sample(1:gorder(g), 5, replace = FALSE)] # random 5 nodes
 g_random <- delete_vertices(g, random) # deactivate these nodes
 density_random <- edge_density(g_random) # new density
 difference_random <- baseline_density - density_random
+print(difference_random)
 ```
 
 ### Exploratory Analysis: Micro-Level Symptom Profiling
