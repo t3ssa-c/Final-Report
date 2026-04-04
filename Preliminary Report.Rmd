@@ -1,0 +1,192 @@
+---
+title: "Preliminary Report"
+author: A0257163A
+output: html_document
+date: "2026-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description of Network Data and Macro-Level Implications
+
+__Data and Network Description__
+
+The data comprises responses from 132 undergraduate students enrolled in 'PL4246 Networks in Psychology' across three semesters. It uses the instrument 'Statistics Anxiety Rating Scale' (STARS), consisting of 51 items evaluated on a 5-point Likert scale: where 1-23 measure affective dimensions (e.g. tension and fear), and 24-51 assess cognitive, attitude-based dimensions (e.g. beliefs about one’s competence in statistics, perceived usefulness).
+
+__Macro-Level Structure and Implications__
+
+A comparison of these systems was conducted using two separate partial correlation networks (Affective vs. Cognitive) using the _bootnet_ package to independently quantify structural differences in how affective anxiety and cognitive beliefs operate. Because the affective and cognitive sub-networks differ in size (23 vs. 28 nodes), _Average Node Strength_ was obtained to provide a standardized measure that controls for network scale, allowing for a valid direct comparison between the two domains.
+
+_Density_ refers to the proportion of nonzero edges relative to all possible edges. The sub-network with higher density indicates highly interconnected items; activation of one component is associated with changes in multiple others within the same system. 
+
+In addition to overall connectedness, a further investigation into _Global Clustering Coefficient_ demonstrates that the sub-network with higher transitivity has more localised, tightly knit items: related feelings or beliefs tend to occur together.  
+
+_Degree Assortativity_ measures the tendency of highly connected nodes to link to other highly connected nodes.  A positive assortativity coefficient indicates that central nodes are strongly interconnected, forming a cohesive core within the network.
+
+_Average Shortest Path Length (ASPL)_ reflects the mean of the shortest possible path between all possible pairs of nodes in the sub-network. A shorter ASPL implies nodes are, on average, closer together for greater structural efficiency with fewer intermediaries from an initial localised trigger. 
+
+__Internal cohesion__ will therefore be indexed by density, average node strength, transitivity, and assortativity, whereas __path efficiency__ will be by average shortest path length. Notably, however, these are structural rather than causal interpretations. Because the network is estimated from cross-sectional rather than temporal data, the pathways represent only undirected partial correlations. Taking into account different scores for each item by each individual, both sub-networks will therefore be undirected and weighted.
+
+## Literature Review and Research Question
+
+__Literature Review__
+
+In light of consistent studies demonstrating an inverse relationship between statistics anxiety  and performance in statistics courses (Fitzgerald et al., 1996) or research methods courses (Onwuegbuzie, 2004) and a direct relationship between statistics anxiety and academic procrastination (Onwuegbuzie, 2004), the Statistics Anxiety Rating Scale (STARS) was developed for assessing statistics anxiety: anxiety experienced when gathering, processing and interpreting data, as a few examples (Cruise et al., 1985).
+
+Cruise et al. (1985) originally proposed six sub-factors which the STARS purports to measure: (a) Interpretation Anxiety (b) Anxiety Surrounding Tests and Classes (c) Apprehension about Seeking Help (d) Perceived Value of Statistics, (e) Computation Self-Concept, and (f) Fear of Statistics Teachers. Assessed on a 5-point Likert scale, 1 indicates “no anxiety” and 5, “very anxious”. The higher one's score, the higher one's statistical anxiety. Notably, these six sub-factors can be conceptually grouped into two broader domains: affective comprising the former three factors, and cognitive comprising the latter three. A study conducted by Chew et al. (2018) found acceptable internal consistency and structure of the Statistical Anxiety Rating Scale (STARS)—this is especially significant considering his predominant sample was psychology undergraduates from Singapore and Australia, which coincides with this data set.
+
+Although the STARS predates network-based approaches, its multidimensional structure aligns well with early theoretical work grounded in network science (Barabasi, 2012), which modelled psychopathology through four core hypotheses (Borsboom, 2008). The former two, causality and connectivity, demonstrate a 'contagion' effect in highly connected networks: an external stressor can trigger a cascade of symptom activation that sustains even after removal of the initial stressor (Cramer et al., 2010; Fried & Cramer, 2017). The third, centrality, where highly connected 'central' symptoms are the primary drivers of this contagion and spread activation more efficiently than peripheral symptoms. And lastly, comorbidity, where symptoms shared across different psychiatric disorders act as structural bridges, allowing activation to spread from one syndrome to another (Cramer et al., 2010). Together, these principles provide a framework for understanding both internal cohesion and path efficiency within psychological networks.
+
+_Cognitive Cohesion_
+
+Mapping the principles of causality and connectivity onto clinical theory, cognitive theories of anxiety, notably Beck's Cognitive Triad, propose that maladaptive beliefs can form internally coherent, self-reinforcing systems (Beck, 1976; Beck & Clark, 1997). When applied to anxiety, this triad manifests as three types of interconnected negative thinking regarding the self (e.g. poor mathematical self-concept), the world (e.g. statistics is inherently threatening/difficult), and the future (e.g. inevitable failure); they do not exist in isolation but mutually reinforce one another. 
+
+This theoretical reinforcement may be quantified through internal cohesion, using metrics such as density, average node strength, degree assortativity, and transitivity—which mathematically assesses the presence of triads in the sub-network. The cognitive components of statistics anxiety are thus expected to exhibit significantly greater values for internal cohesion, presenting structurally as a clustered core of closed triangles, than affective items.
+
+_Affective Efficiency_
+
+Centrality and comorbidity help explain differences in a network’s path efficiency: the speed and ease with which symptom activation spreads across the sub-network via highly connected nodes and structural bridges (Fried et al., 2017). 
+
+In network terms, this structural reactivity is captured by ASPL, where shorter paths indicate greater transmission efficiency. When affective symptoms are closely linked through central hubs or bridge nodes, activation can spread rapidly across the network with fewer intermediary steps. Accordingly, the affective sub-network is expected to exhibit a shorter ASPL than the cognitive sub-network, facilitating faster contagion. Additionally, central hubs and bridges can be investigated through node strength and betweenness centrality respectively.
+
+__Research Question__
+
+Does the cognitive sub-network exhibit greater internal cohesion, whereas the affective sub-system facilitate greater path efficiency?
+
+
+## Psychometric Network
+
+All necessary libraries are loaded.
+
+``` {r}
+library(igraph)
+library(bootnet) # to compute partial correlation matrix
+library(tidyverse) # for data wrangling
+```
+
+The STARS dataset is then loaded, and split into two sub-networks: 'Affective' and 'Cognitive'. The partial correlation matrix corresponding to each is then created and converted into igraph objects.
+
+```{r}
+data <- read.csv('stars-data_132.csv', header = T)
+# split into sub-networks
+affective <- data |> select(item_1:item_23) # affective sub-network
+cognitive <- data |> select(item_24:item_51) # cognitive sub-network
+# create partial correlation matrix
+net_affective <- estimateNetwork(affective, default = "pcor", 
+                                threshold = 'sig') # affective partial correlation matrix
+net_cognitive <- estimateNetwork(cognitive, default = "pcor", 
+                                threshold = 'sig') # cognitive partial correlation matrix
+# convert both to igraph objects
+g_affective <- graph_from_adjacency_matrix(abs(net_affective$graph), 
+                                           mode="undirected", weighted=TRUE)
+g_cognitive <- graph_from_adjacency_matrix(abs(net_cognitive$graph), 
+                                           mode="undirected", weighted=TRUE)
+```
+
+_Macro-Level Analysis for Affective Sub-Network_
+There are 23 nodes and 40 edges; undirected and weighted.
+
+``` {r}
+summary(g_affective)
+## internal cohesion checks
+mean(strength(g_affective)) # average node strength
+edge_density(g_affective) # density
+transitivity(g_affective, type = "global") # global clustering (transitivity)
+assortativity_degree(g_affective) # degree assortativity
+## path efficiency checks
+mean_distance(g_affective) # average shortest path length
+```
+
+_Macro-Level Analysis for Cognitive Sub-Network_
+There are 28 nodes and 47 edges; undirected and weighted.
+
+``` {r}
+summary(g_cognitive)
+## internal cohesion checks
+mean(strength(g_cognitive)) # average node strength
+edge_density(g_cognitive) # density
+transitivity(g_cognitive, type = "global") # global clustering (transitivity)
+assortativity_degree(g_cognitive) # degree assortativity
+## path efficiency checks
+mean_distance(g_cognitive) # average shortest path length
+```
+
+## Discussion
+
+The current analysis is __not consistent__ with the hypothesis that the cognitive sub-network would have greater internal cohesion, but is __consistent__ with the hypothesis that the affective sub-network would have greater path efficiency. 
+
+As demonstrated by the above code, _internal cohesion checks_ (average node strength, desity, transitivity and degree assortativity) all obtained higher values for the affective than cognitive sub-network. Psychologically, this may suggest that situational panic and physiological response to statistics form a self-reinforcing, deeply entrenched core; acute feelings of anxiety (e.g. tension and fear) is more structurally robust than maladaptive beliefs and attitudes (e.g. poor mathematical self-concept).
+
+On the other hand, _path efficiency check_ (ASPL) was smaller for the affective than cognitive sub-network. Psychologically, this demonstrates the highly reactive nature of anxiety requires fewer intermediary steps to spread; an initial localised trigger (e.g. entering the exam room) can rapidly cascade into generalised panic.
+
+Out of interest, the top 3 'central hubs' (node strength) and structural bridges (betweenness centrality) for both domains was obtained. 
+
+```{r}
+## node strength (central hubs)
+strength_affective <- strength(g_affective)
+strength_cognitive <- strength(g_cognitive)
+## betweenness centrality (structural bridges)
+betweenness_affective <- betweenness(g_affective, directed = FALSE, 
+                                     weights = 1/abs(E(g_affective)$weight))
+betweenness_cognitive <- betweenness(g_cognitive, directed = FALSE, 
+                                     weights = 1/abs(E(g_cognitive)$weight))
+## top three:
+# affective sub-network
+print(head(sort(strength_affective, decreasing = TRUE), 3))
+print(head(sort(betweenness_affective, decreasing = TRUE), 3))
+# cognitive sub-network
+print(head(sort(strength_cognitive, decreasing = TRUE), 3))
+print(head(sort(betweenness_affective, decreasing = TRUE), 3))
+```
+
+Finally, the respective plots for both networks are created below. 
+
+```{r}
+## remove 'i_' and 'it_' for presentation and readability
+V(g_affective)$label <- gsub("^(i_|it_)", "", V(g_affective)$name)
+V(g_cognitive)$label <- gsub("^(i_|it_)", "", V(g_cognitive)$name)
+## plot for affective sub-network
+plot(g_affective, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Affective Subnetwork (Items 1-23)")
+## plot for cognitive sub-network
+plot(g_cognitive, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Cognitive Subnetwork (Items 24-51)")
+
+# note to self: learn to plot the central hubs and structural bridges in distinct colors
+```
+
+## References
+
+Barabasi, A. L. (2012). The network takeover. _Nature Physics, 8_, 14–16.
+
+Beck, A. T. (1976). Cognitive therapy and the emotional disorders. _International Universities Press_. https://archive.org/details/cognitivetherapy00beck
+
+Beck, A. T., & Clark, D. A. (1997). An information processing model of anxiety: Automatic and strategic processes. _Behaviour Research and Therapy, 35_(1), 49–58. https://doi.org/10.1016/S0005-7967(96)00084-5
+
+Borsboom, D. (2008). Psychometric perspectives on diagnostic systems. _Journal of Clinical Psychology, 64_, 1089–108.
+
+Chew, P. K. H., Dillon, D. B., & Swinbourne, A. L. (2018). An examination of the internal consistency and structure of the Statistical Anxiety Rating Scale (STARS). _PloS one, 13_(3). https://doi.org/10.1371/journal.pone.0194195
+
+Cramer, A. O., Waldorp, L. J., van der Maas, H. L., & Borsboom, D. (2010). Comorbidity: a network perspective. _Behavioral and Brain Sciences, 33_, 137–150.
+
+Cruise, R. J., Cash, R. W., & Bolton, D. L. (1985). _Development and validation of an instrument to measure statistical anxiety_. In Paper presented at the proceedings of the American Statistical Association.
+
+Fitzgerald, S. M., Jurs, S., & Hudson, L. M. (1996). A model predicting statistics     achievement among graduate students. _College Student Journal, 30_, 361–366.
+
+Fried, E. I., & Cramer, A. O. J. (2017). Moving forward: Challenges and directions for psychopathological network theory and methodology. _Perspectives on Psychological Science, 12_, 999–1020.
+
+Hanna, D., Shevlin, M., & Dempster, M. (2008). The structure of the Statistics Anxiety Rating Scale: A confirmatory factor analysis using UK psychology students. _Personality and Individual Differences, 45_(1), 65-74. https://doi.org/10.1016/j.paid.2008.02.021
+
+Onwuegbuzie, A. J. (2004). Academic procrastination and statistics anxiety. _Assessment and Evaluation in Higher Education, 29_, 3–19.

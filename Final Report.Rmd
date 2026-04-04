@@ -1,0 +1,160 @@
+---
+title: "Exposure Therapy or Cognitive Restructuring for Statistics Anxiety?"
+author: "Chen Man Hin"
+date: "2026-03-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Libraries
+
+To investigate statistics anxiety, all analyses were conducted in R using the bootnet package for network estimation and the igraph package for network visualisation, analysis and simulation.
+
+```{r}
+library(igraph)
+library(bootnet) # to compute partial correlation matrix
+library(tidyverse) # for data wrangling
+```
+
+### Data
+
+The 51-item STARS was partitioned into its two theoretically established domains: the affective sub-domain (items 1-23) and cognitive sub-domain (items 24-51). Partial correlation networks were estimated for both sub-networks, as well as the global network, and subsequently converted into undirected, weighted igraph objects for analysis.
+
+```{r}
+# load the data
+data <- read.csv('stars-data_132.csv', header = T)
+# split into sub-networks
+affective <- data |> select(item_1:item_23) # affective sub-network
+cognitive <- data |> select(item_24:item_51) # cognitive sub-network
+all <- data |> select(item_1:item_51)  # full network
+# create partial correlation matrix for each sub-network
+net_affective <- estimateNetwork(affective, default = "pcor", 
+                                threshold = 'sig') # affective partial correlation matrix
+net_cognitive <- estimateNetwork(cognitive, default = "pcor", 
+                                threshold = 'sig') # cognitive partial correlation matrix
+net_g <- estimateNetwork(all, default = "pcor", 
+                         threshold = 'sig') # full network
+# convert both to igraph objects for analysis
+g_affective <- graph_from_adjacency_matrix(abs(net_affective$graph), 
+                                           mode="undirected", weighted = TRUE)
+g_cognitive <- graph_from_adjacency_matrix(abs(net_cognitive$graph), 
+                                           mode="undirected", weighted = TRUE)
+g <- graph_from_adjacency_matrix(abs(net_g$graph), 
+                                 mode="undirected", weighted = TRUE)
+summary(g_affective)
+summary(g_cognitive)
+```
+
+### Network Visualisation
+
+To visually inspect the structural differences between the sub-domains, the networks were plotted below.
+
+```{r}
+# remove 'i_' and 'it_' for presentation and readability
+V(g_affective)$label <- gsub("^(i_|it_)", "", V(g_affective)$name)
+V(g_cognitive)$label <- gsub("^(i_|it_)", "", V(g_cognitive)$name)
+
+# plot for affective sub-network
+plot(g_affective, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Affective Subnetwork (Items 1-23)")
+
+# plot for cognitive sub-network
+plot(g_cognitive, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Cognitive Subnetwork (Items 24-51)")
+```
+
+## Hypothesis 1: Internal Cohesion VS Path Efficiency
+
+**Does the cognitive sub-network exhibit greater internal cohesion, whereas the affective sub-system facilitate greater path efficiency?**
+
+_Internal cohesion_ was tested by comparing macro-level metrics including average node strength, edge density, transitivity and degree assortativity; which mathematically assesses the presence of triads in the sub-network. The cognitive components of statistics anxiety are thus expected to exhibit significantly greater values for internal cohesion, presenting structurally as a clustered core of closed triangles, than affective items.
+
+_Path efficiency_ was evaluated using the Average Shortest Path Length (ASPL), where shorter paths indicate greater transmission efficiency. Accordingly, the affective sub-network is expected to exhibit a shorter ASPL than the cognitive sub-network, facilitating faster contagion.
+
+### Macro-Level Analysis: Internal Cohesion
+
+```{r}
+cat("\n--- INTERNAL COHESION ---\n")
+# Affective Sub-Network
+mean(strength(g_affective)) # average node strength
+edge_density(g_affective) # density
+transitivity(g_affective, type = "global") # global clustering (transitivity)
+assortativity_degree(g_affective) # degree assortativity
+
+# Cognitive Sub-Network
+mean(strength(g_cognitive)) # average node strength
+edge_density(g_cognitive) # density
+transitivity(g_cognitive, type = "global") # global clustering (transitivity)
+assortativity_degree(g_cognitive) # degree assortativity
+```
+
+### Macro-Level Analysis: Path Efficiency
+
+```{r}
+cat("\n--- PATH EFFICIENCY ---\n")
+# Affective Sub-Network
+mean_distance(g_affective, weights = NA) # average shortest path length
+
+# Cognitive Sub-Network
+mean_distance(g_cognitive, weights = NA) # average shortest path length
+```
+
+## Hypothesis 2: Network Degradation Simulation
+
+**Is structural disintegration, measured by decrease in global edge density, more efficacious from targeted "keystone" symptom deactivation than random symptom alleviation?**
+
+_Keystone symptoms_ were defined as the top five nodes possessing the highest eigenvector centrality within the global network. To ensure fair comparison, five random nodes were deactivated. 
+
+```{r}
+cat("\n--- DEGRADATION SIMULATION (REMOVING 5 NODES) ---\n")
+baseline_density <- edge_density(g)
+
+# Simulation A: Targeted Removal (Highest Strength)
+ec <- eigen_centrality(g)$vector
+targeted <- names(sort(ec, 
+                       decreasing = TRUE)[1:5]) # identify top 5 nodes with highest ec 
+g_targeted <- delete_vertices(g, targeted) # deactivate these nodes
+density_targeted <- edge_density(g_targeted) # new density
+difference_targeted <- baseline_density - density_targeted
+
+# Simulation B: Random Removal
+set.seed(1)
+random <- V(g)$name[sample(1:gorder(g), 5, replace = FALSE)] # random 5 nodes
+g_random <- delete_vertices(g, random) # deactivate these nodes
+density_random <- edge_density(g_random) # new density
+difference_random <- baseline_density - density_random
+```
+
+### Exploratory Analysis: Micro-Level Symptom Profiling
+
+To translate these macro-level findings into actionable clinical targets, a post-hoc micro-level analysis was performed. Node strength was computed to identify the primary drivers (hubs) of anxiety within each domain, and betweenness centrality was calculated to locate the critical bridges across the network.
+
+```{r}
+# Node Strength (Central Hubs)
+strength_affective <- strength(g_affective)
+strength_cognitive <- strength(g_cognitive)
+# Betweenness Centrality (Structural Bridges)
+betweenness_affective <- betweenness(g_affective, directed = FALSE, 
+                                     weights = 1/abs(E(g_affective)$weight))
+betweenness_cognitive <- betweenness(g_cognitive, directed = FALSE, 
+                                     weights = 1/abs(E(g_cognitive)$weight))
+# Top Three of Affective Sub-network
+print(head(sort(strength_affective, decreasing = TRUE), 3))
+print(head(sort(betweenness_affective, decreasing = TRUE), 3))
+# Top Three of Cognitive Sub-network
+print(head(sort(strength_cognitive, decreasing = TRUE), 3))
+print(head(sort(betweenness_cognitive, decreasing = TRUE), 3))
+```
