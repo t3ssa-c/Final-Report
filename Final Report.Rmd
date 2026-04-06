@@ -26,18 +26,18 @@ The 51-item STARS was partitioned into its two theoretically established domains
 ```{r}
 # load the data
 data <- read.csv('stars-data_132.csv', header = T)
-# split into sub-networks
+# split into sub-networks and full network
 affective <- data |> select(item_1:item_23) # affective sub-network
 cognitive <- data |> select(item_24:item_51) # cognitive sub-network
 all <- data |> select(item_1:item_51)  # full network
-# create partial correlation matrix for each sub-network
+# create partial correlation matrix for each sub-network and full network
 net_affective <- estimateNetwork(affective, default = "pcor", 
                                 threshold = 'sig') # affective partial correlation matrix
 net_cognitive <- estimateNetwork(cognitive, default = "pcor", 
                                 threshold = 'sig') # cognitive partial correlation matrix
 net_g <- estimateNetwork(all, default = "pcor", 
                          threshold = 'sig') # full network
-# convert both to igraph objects for analysis
+# convert all to igraph objects for analysis
 g_affective <- graph_from_adjacency_matrix(abs(net_affective$graph), 
                                            mode="undirected", weighted = TRUE)
 g_cognitive <- graph_from_adjacency_matrix(abs(net_cognitive$graph), 
@@ -122,6 +122,16 @@ _Keystone symptoms_ were defined as the top five nodes possessing the highest ei
 cat("\n--- DEGRADATION SIMULATION (REMOVING 5 NODES) ---\n")
 baseline_density <- edge_density(g)
 
+# Plot Network Before Degradation
+V(g)$label <- gsub("^(i_|it_)", "", V(g)$name) # remove 'i_' and 'it_' for presentation and readability
+plot(g, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Pre-Removal")
+
 # Simulation A: Targeted Removal (Highest Strength)
 ec <- eigen_centrality(g)$vector
 targeted <- names(sort(ec, 
@@ -131,6 +141,16 @@ density_targeted <- edge_density(g_targeted) # new density
 difference_targeted <- baseline_density - density_targeted
 print(difference_targeted)
 
+# Plot Targeted Degradation Network
+V(g_targeted)$label <- gsub("^(i_|it_)", "", V(g_targeted)$name) # remove 'i_' and 'it_' for presentation and readability
+plot(g_targeted, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Targeted Removal")
+
 # Simulation B: Random Removal
 set.seed(1)
 random <- V(g)$name[sample(1:gorder(g), 5, replace = FALSE)] # random 5 nodes
@@ -138,6 +158,16 @@ g_random <- delete_vertices(g, random) # deactivate these nodes
 density_random <- edge_density(g_random) # new density
 difference_random <- baseline_density - density_random
 print(difference_random)
+
+# Plot Random Degradation Network
+V(g_random)$label <- gsub("^(i_|it_)", "", V(g_random)$name) # remove 'i_' and 'it_' for presentation and readability
+plot(g_random, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Random Removal")
 ```
 
 ### Exploratory Analysis: Micro-Level Symptom Profiling
@@ -153,10 +183,29 @@ betweenness_affective <- betweenness(g_affective, directed = FALSE,
                                      weights = 1/abs(E(g_affective)$weight))
 betweenness_cognitive <- betweenness(g_cognitive, directed = FALSE, 
                                      weights = 1/abs(E(g_cognitive)$weight))
+
 # Top Three of Affective Sub-network
-print(head(sort(strength_affective, decreasing = TRUE), 3))
-print(head(sort(betweenness_affective, decreasing = TRUE), 3))
+top_affective <- head(sort(strength_affective, decreasing = TRUE), 3)
+print(top_affective)
+top_b_affective <- head(sort(betweenness_affective, decreasing = TRUE), 3)
+print(top_b_affective)
 # Top Three of Cognitive Sub-network
-print(head(sort(strength_cognitive, decreasing = TRUE), 3))
-print(head(sort(betweenness_cognitive, decreasing = TRUE), 3))
+top_cognitive <- head(sort(strength_cognitive, decreasing = TRUE), 3)
+print(top_cognitive)
+top_b_cognitive <- head(sort(betweenness_cognitive, decreasing = TRUE), 3)
+print(top_b_cognitive)
+
+# Simulate Removal of Top Three Central Hubs for Both Affective and Cognitive Sub-Networks
+cat("\n--- DEGRADATION: REMOVING TOP 3 STRENGTH HUBS ---\n")
+# Affective Sub-network
+edge_density(g_affective)
+hubs_affective <- names(top_affective) 
+degrade_affective <- delete_vertices(g_affective, hubs_affective) # to remove top 3
+print(edge_density(degrade_affective))
+
+# Cognitive Sub-network
+edge_density(g_cognitive)
+hubs_cognitive <- names(top_cognitive) 
+degrade_cognitive <- delete_vertices(g_cognitive, hubs_cognitive)
+print(edge_density(degrade_cognitive))
 ```
