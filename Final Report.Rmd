@@ -17,6 +17,7 @@ To investigate statistics anxiety, all analyses were conducted in R using the bo
 library(igraph)
 library(bootnet) # to compute partial correlation matrix
 library(tidyverse) # for data wrangling
+library(psych) # for internal consistency
 ```
 
 ### Data
@@ -25,7 +26,8 @@ The 51-item STARS was partitioned into its two theoretically established domains
 
 ```{r}
 # load the data
-data <- read.csv('stars-data_132.csv', header = T)
+data <- read.csv('stars-data_132.csv', header = T) |> 
+  filter(ResponseId != "R_4hymyKs8w9S3T3T") # excluded due to missing data
 # split into sub-networks and full network
 affective <- data |> select(item_1:item_23) # affective sub-network
 cognitive <- data |> select(item_24:item_51) # cognitive sub-network
@@ -46,6 +48,14 @@ g <- graph_from_adjacency_matrix(abs(net_g$graph),
                                  mode="undirected", weighted = TRUE)
 summary(g_affective)
 summary(g_cognitive)
+
+# internal consistency check
+cat("\n--- RELIABILITY: AFFECTIVE SUB-SCALE ---\n")
+alpha_affective <- psych::alpha(affective) # Cronbach alpha value for affective
+print(alpha_affective$total$raw_alpha)
+cat("\n--- RELIABILITY: COGNITIVE SUB-SCALE ---\n")
+alpha_cognitive <- psych::alpha(cognitive) # Cronbach alpha value for cognitive
+print(alpha_cognitive$total$raw_alpha)
 ```
 
 ### Network Visualisation
@@ -202,10 +212,12 @@ edge_density(g_affective)
 hubs_affective <- names(top_affective) 
 degrade_affective <- delete_vertices(g_affective, hubs_affective) # to remove top 3
 print(edge_density(degrade_affective))
+print(edge_density(g_affective)-edge_density(degrade_affective))
 
 # Cognitive Sub-network
 edge_density(g_cognitive)
 hubs_cognitive <- names(top_cognitive) 
 degrade_cognitive <- delete_vertices(g_cognitive, hubs_cognitive)
 print(edge_density(degrade_cognitive))
+print(edge_density(g_cognitive)-edge_density(degrade_cognitive))
 ```
