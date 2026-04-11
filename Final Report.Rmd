@@ -213,6 +213,14 @@ hubs_affective <- names(top_affective)
 degrade_affective <- delete_vertices(g_affective, hubs_affective) # to remove top 3
 print(edge_density(degrade_affective))
 print(edge_density(g_affective)-edge_density(degrade_affective))
+# plot for degraded affective sub-network
+plot(degrade_affective, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Degraded Affective Subnetwork (Items 1-23)")
 
 # Cognitive Sub-network
 edge_density(g_cognitive)
@@ -220,4 +228,11 @@ hubs_cognitive <- names(top_cognitive)
 degrade_cognitive <- delete_vertices(g_cognitive, hubs_cognitive)
 print(edge_density(degrade_cognitive))
 print(edge_density(g_cognitive)-edge_density(degrade_cognitive))
+plot(degrade_cognitive, 
+    vertex.color = "lightpink", 
+    edge.color = "mediumpurple", 
+    vertex.label.color = "black",
+    vertex.size = 16,
+    vertex.shape = 'circle',
+    main = "Degraded Cognitive Subnetwork (Items 24-51)")
 ```
