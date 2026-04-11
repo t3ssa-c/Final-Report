@@ -63,4 +63,4 @@ To reproduce the analysis in the .Rmd files, the following R packages are requir
 * tidyverse
 * bootnet
 * igraph
-
+* psych
