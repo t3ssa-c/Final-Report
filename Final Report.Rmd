@@ -56,6 +56,9 @@ print(alpha_affective$total$raw_alpha)
 cat("\n--- RELIABILITY: COGNITIVE SUB-SCALE ---\n")
 alpha_cognitive <- psych::alpha(cognitive) # Cronbach alpha value for cognitive
 print(alpha_cognitive$total$raw_alpha)
+cat("\n--- RELIABILITY: FULL NETWORK ---\n")
+alpha_network <- psych::alpha(all) # Cronbach alpha value for cognitive
+print(alpha_network$total$raw_alpha)
 ```
 
 ### Network Visualisation
@@ -131,6 +134,7 @@ _Keystone symptoms_ were defined as the top five nodes possessing the highest ei
 ```{r}
 cat("\n--- DEGRADATION SIMULATION (REMOVING 5 NODES) ---\n")
 baseline_density <- edge_density(g)
+print(baseline_density)
 
 # Plot Network Before Degradation
 V(g)$label <- gsub("^(i_|it_)", "", V(g)$name) # remove 'i_' and 'it_' for presentation and readability
@@ -149,6 +153,7 @@ targeted <- names(sort(ec,
 g_targeted <- delete_vertices(g, targeted) # deactivate these nodes
 density_targeted <- edge_density(g_targeted) # new density
 difference_targeted <- baseline_density - density_targeted
+print(density_targeted)
 print(difference_targeted)
 
 # Plot Targeted Degradation Network
@@ -167,6 +172,7 @@ random <- V(g)$name[sample(1:gorder(g), 5, replace = FALSE)] # random 5 nodes
 g_random <- delete_vertices(g, random) # deactivate these nodes
 density_random <- edge_density(g_random) # new density
 difference_random <- baseline_density - density_random
+print(density_random)
 print(difference_random)
 
 # Plot Random Degradation Network
